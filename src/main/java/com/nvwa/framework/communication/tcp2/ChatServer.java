@@ -133,12 +133,23 @@ public class ChatServer {
 			 int head = indexOf(data, (byte)1);
 			 int tail = indexOf(data,(byte)2);
 			 
+			 
 			 while(head != -1 && tail != -1) {
 				 byte[] packet = new byte[tail-head + 1];
 				 System.arraycopy(data, head, packet, 0, tail-head + 1);
 				 complete.offer(packet);
 				 head = indexOf(data, (byte)1,tail+1);
 				 tail = indexOf(data,(byte)2,tail+1);
+				 if(head != -1 && tail == -1) {
+					 
+				 }
+				 if(head == -1 && tail == -1) {
+					 
+				 }
+				 if(head == -1 && tail != -1) {
+					 
+				 }
+				 
 			 }
 			 
 		}
