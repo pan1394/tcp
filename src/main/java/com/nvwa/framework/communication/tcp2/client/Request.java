@@ -3,6 +3,8 @@ package com.nvwa.framework.communication.tcp2.client;
 import java.io.UnsupportedEncodingException;
 import java.util.UUID;
 
+import com.nvwa.framework.communication.tcp2.ByteArrayUtil;
+
 public class Request {
 
 	private String requestId ="";
@@ -36,7 +38,7 @@ public class Request {
 		 int length = data.length;
 		 byte type =  getType().getValue();
 		 
-		 byte[] a = int2bytes(length);
+		 byte[] a = ByteArrayUtil.int2bytes(length);
 		 byte[] packet = new byte[length+7];
 		 
 		 packet[0] = (byte)1;
@@ -47,12 +49,5 @@ public class Request {
 		 return packet;
 	}
 	
-	 private static byte[] int2bytes(int num) {  
-	        byte[] b = new byte[4];  
-	        int mask = 0xff;  
-	        for (int i = 0; i < 4; i++) {  
-	            b[i] = (byte) (num >>> (24 - i * 8));  
-	        }  
-	        return b;  
-	} 
+  
 }

@@ -19,33 +19,35 @@ import java.util.concurrent.Executors;
 
 import com.nvwa.framework.communication.tcp2.client.RequestType;
 
-public class ChatServer {
+public class TCPServer {
+	
 	boolean started = false;
 	private List<Client> clients = new ArrayList<Client>();
 	private ServerSocket ss = null;
 	private ExecutorService threadPool = null; 
+	
 	private int port = 8888;
 	private int threadpoolNumber = 100;
-	private int MAX_BUFFER=10;
-	private int SO_TIME_OUT = 1000*1;
+	private int MAX_BUFFER=1024*16;
+	private int SO_TIME_OUT = 1000*30;
 	
-	private ChatServer() { 
+	private TCPServer() { 
 		threadPool = Executors.newFixedThreadPool(threadpoolNumber); 
 	}
 	
-	public static ChatServer getInstance() {
-		return new ChatServer();
+	public static TCPServer getInstance() {
+		return new TCPServer();
 	}
 	
 	public static void main(String[] args) {
-		ChatServer.getInstance().start();
+		TCPServer.getInstance().start();
 	}
 
 	public void start() {
 		try {
 			ss = new ServerSocket(this.port); 
+			//ss.setSoTimeout(SO_TIME_OUT);
 			started = true;
-			ss.setSoTimeout(SO_TIME_OUT);
 			System.out.println("Port occupied :" + this.port);
 		} catch (BindException e) {
 			System.out.println("Port are using..." + this.port);
@@ -130,6 +132,7 @@ public class ChatServer {
 			buffer = new byte[MAX_BUFFER]; 
 			Arrays.fill(buffer, 0, MAX_BUFFER, (byte)3);
 		}
+		
 		public boolean validateData(byte[] source) {
 			if(source[0] != (byte)3 && source[source.length-1] != (byte)3) {
 				return true;
@@ -148,8 +151,8 @@ public class ChatServer {
 					//if(type == RequestType.HEARTBEAT) return;
 					is.read(real);
 					String str = new String(real, "UTF-8");
-					System.out.println("------------来自本地服务器:" + str);
-					//send(str);
+					System.out.println("------------来自本地服务器:" +s.getInetAddress().getHostName() + "~"+ str);
+					send(str);
 					packet = completeQueue.poll();
 				} 
 		}

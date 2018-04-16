@@ -1,13 +1,6 @@
 package com.nvwa.framework.communication.tcp2.client;
 
-import java.awt.BorderLayout;
 import java.awt.Frame;
-import java.awt.TextArea;
-import java.awt.TextField;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.EOFException;
@@ -21,13 +14,11 @@ import java.net.UnknownHostException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class ChatClient extends Frame {
+public class TCPClient extends Frame {
 	Socket s = null;
 	DataOutputStream dos = null;
 	DataInputStream dis = null;
-	private boolean bConnected = false; 
-	TextField tfTxt = new TextField();
-	TextArea taContent = new TextArea();
+	private boolean bConnected = false;  
 	ExecutorService threadPool = Executors.newFixedThreadPool(4); 
 	Thread tRecv = new Thread(new RecvThread());
 	Thread heartbeat = new Thread(new HeartBeatThread()); 
@@ -38,14 +29,14 @@ public class ChatClient extends Frame {
 	private int HEARTBEAT_INTERVAL ;
 	
 	public static void main(String[] args) { 
-		ChatClient.getInstance().launch2();
+		TCPClient.getInstance().launch2();
 	}
 	
-	private static ChatClient getInstance() {
-		return new ChatClient();
+	private static TCPClient getInstance() {
+		return new TCPClient();
 	}
 	
-	private ChatClient() {
+	private TCPClient() {
 		ConnectionConfiguration config = new ConnectionConfiguration();
 		port = config.getPort();
 		hostname = config.getHostname();
@@ -54,74 +45,20 @@ public class ChatClient extends Frame {
 	}
  
 	public void launch2() { 
+		
 		connect(port); 
-		threadPool.submit(new RecvThread());
-		threadPool.submit(new HeartBeatThread()); 
 		threadPool.submit(new MonitorThread());
-		/*threadPool.submit(new Runnable() { 
-			public void run() {
-			for(;;) {
-				try {
-					Request request = new Request();
-					request.setContent("中午好,呵呵");  
-					dos.write(request.getBytes());
-					dos.flush();
-					
-					Thread.sleep(30*1000);
-				} catch (IOException e) { 
-					e.printStackTrace();
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}   
-		}});*/ 
+		if(this.bConnected == true) {
+			threadPool.submit(new RecvThread());
+			threadPool.submit(new HeartBeatThread());  
+			threadPool.submit(new ServicesThread()); 
+		} 
 	}
-	
-	public void launchFrame() {
-		setLocation(400, 300);
-		this.setSize(300, 300);
-		add(tfTxt, BorderLayout.SOUTH);
-		add(taContent, BorderLayout.NORTH);
-		pack();
-		this.addWindowListener(new WindowAdapter() {
-
-			@Override
-			public void windowClosing(WindowEvent arg0) {
-				disconnect();
-				System.exit(0);
-			}
-
-		});
-		tfTxt.addActionListener(new TFListener());
-		setVisible(true);
-		connect(port); 
-		threadPool.submit(new RecvThread());
-		threadPool.submit(new HeartBeatThread());
-		threadPool.submit(new MonitorThread());
-		//tRecv.start();
-		//heartbeat.start();
-		threadPool.submit(new Runnable() { 
-			public void run() {
-				for(int i=0; i<20;i++) {
-					try {
-						dos.writeUTF("asdfddasdfdddssss11ss");
-						dos.flush();
-					} catch (IOException e) { 
-						e.printStackTrace();
-					}
-				} 
-				
-			}
-		}); 
-	}
-
 	 
-	
 	public void connect(int port) {
 		try { 
 			s = new Socket();
-			SocketAddress address = new InetSocketAddress(hostname, port);
+			SocketAddress address = new InetSocketAddress("192.168.83.1", port);
 			s.connect(address, CONNECTION_TIMEOUT);
 			s.setTcpNoDelay(true);
 			dos = new DataOutputStream(s.getOutputStream());
@@ -136,7 +73,6 @@ public class ChatClient extends Frame {
 		}catch (IOException e) {
 			e.printStackTrace();
 		}
-
 	}
 
 	public void disconnect() {
@@ -147,7 +83,6 @@ public class ChatClient extends Frame {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-
 	}
 	
 	public void reconnect() {
@@ -155,35 +90,18 @@ public class ChatClient extends Frame {
 		if(bConnected) {
 			threadPool.submit(new RecvThread());
 			threadPool.submit(new HeartBeatThread()); 
+			threadPool.submit(new ServicesThread()); 
 		}
 	}
-  
-	private class TFListener implements ActionListener {
-		public void actionPerformed(ActionEvent e) {
-			String str = tfTxt.getText().trim();
-			tfTxt.setText("");
-
-			try { 
-				dos.writeUTF(str);
-				dos.flush();
-			} catch (IOException e1) {
-				e1.printStackTrace();
-			} 
-		} 
-	}
- 
-	
+    
 	private class RecvThread implements Runnable {
 
-		public void run() {
-			// TODO Auto-generated method stub
-			
-		} 
-		/*public void run() {
+	 
+		 public void run() {
 			try {
 				while (bConnected) {
 					String str = dis.readUTF();
-					taContent.setText(taContent.getText() + str + '\n');
+					System.out.println("Get response: " + str);
 				}
 			} catch (SocketException e) {
 				System.out.println("退出了3，bye!");
@@ -194,7 +112,7 @@ public class ChatClient extends Frame {
 				e.printStackTrace();
 			}
 
-		}*/
+		} 
 
 	}
 	
@@ -219,12 +137,18 @@ public class ChatClient extends Frame {
 				e.printStackTrace();
 			}finally {
 				bConnected = false;
+				try {
+					if(dos!= null) {
+						dos.close();
+					}
+					dos =null;
+				} catch (IOException e) { 
+					e.printStackTrace();
+				}
 			} 
 		} 
 	}
-	
-	
-	
+	 
 	private class MonitorThread implements Runnable { 
 		public void run() { 
 			int threshold = 0;
@@ -233,6 +157,8 @@ public class ChatClient extends Frame {
 					 if(!bConnected) {
 						 reconnect(); 
 						 threshold++;
+					 }else {
+						 threshold = 0;
 					 }
 				 }
 				 if(threshold > 10) {
@@ -248,5 +174,37 @@ public class ChatClient extends Frame {
 				}
 			 } 
 		} 
+	}
+	
+	private class ServicesThread implements Runnable { 
+		public void run() {
+		 
+			try {
+				while(true) {
+					Request request = new Request();
+					request.setContent("中午好,呵呵");  
+					dos.write(request.getBytes());
+					dos.flush();
+					Thread.sleep(30*1000);
+				}
+			} catch (IOException e) { 
+				e.printStackTrace();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}catch(Exception e) {
+				e.printStackTrace();
+			}
+			finally {
+				try {
+					if(dos!= null) {
+						dos.close();
+					}
+					dos =null;
+				} catch (IOException e) { 
+					e.printStackTrace();
+				}
+			}
+		}   
 	}
 }
